@@ -1,0 +1,3442 @@
+openapi: 3.0.4
+info:
+  title: E-commerce API
+  description: |
+    Complete e-commerce API with user authentication, product management, 
+    shopping cart, orders, payments, and admin functionality.
+    
+    ## Authentication
+    - JWT Bearer token authentication
+    - Email verification required for full access
+    - Google OAuth support
+    
+    ## Roles
+    - **user**: Regular customer permissions
+    - **admin**: Full administrative access
+    
+    ## Rate Limiting
+    - 1000 requests per hour per IP
+    - 100 requests per minute for authenticated users
+  version: 1.0.0
+  termsOfService: https://example.com/terms
+  contact:
+    name: Abdulrahman Hegazy
+    email: a.0hegazy@proton.me
+externalDocs:
+  description: Find out more about the project
+  url: https://www.github.com/ahegazy0/ecommerce-express-boilerplate
+servers:
+  - url: http://localhost:5000/api/v1
+    description: Local development server
+  - url: https://ecommerce-express-boilerplate.onrender.com/api/v1
+    description: Production server
+
+# Global security - applies to all endpoints
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Authentication
+    description: User registration, login, session management, and profile operations
+    externalDocs:
+      description: Learn more about authentication flow
+      url: https://example.com/docs/auth
+  
+  - name: Cart
+    description: Operations for managing the shopping cart, including item additions, updates, and removals
+
+  - name: Orders
+    description: Endpoints for creating, viewing, and managing customer orders
+  
+  - name: Products
+    description: Browse, search, and view product catalog
+    externalDocs:
+      description: Product catalog documentation
+      url: https://example.com/docs/products
+
+  - name: Webhooks
+    description: Endpoints for configuring and receiving event-based callbacks from the system
+
+  - name: Payments
+    description: Endpoints for processing payments, handling transactions, and payment status
+
+  - name: Reviews
+    description: Endpoints for creating and managing customer product reviews
+
+  - name: Admin - Users
+    description: Administrative endpoints for managing user accounts (Admin role required)
+
+  - name: Admin - Orders
+    description: Administrative endpoints for managing and updating order records (Admin role required)
+
+  - name: Admin - Products
+    description: Administrative endpoints for managing product listings and inventory (Admin role required)
+
+paths:
+
+  /register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Create a new user account and send verification email
+      operationId: registerUser
+      requestBody:
+        required: true
+        description: Registration data for a new user
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:  
+              success:
+                summary: Successful registration data
+                value:
+                  name: "John Doe"
+                  email: "john@example.com"
+                  password: "securePassword123@"
+                  role: "user"
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Successful registration
+                  value:
+                    status: success
+                    data:
+                      user:
+                        id: "64c9b8d3a7e9a2d8f0c1b234"
+                        name: "John Doe"
+                        email: "john@example.com"
+                        role: "user"
+                        avatar: "https://via.placeholder.com/150/cccccc/969696?text=User"
+                        emailVerified: false
+                        isActive: true
+                        createdAt: "2025-10-15T12:00:00.000Z"
+                        updatedAt: "2025-10-15T12:00:00.000Z"
+                      accessToken: "eyJhbGciOiJIUzI1NiIsInR5..."
+                      message: "Registered successfully! Please check your email to verify your account."
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /login:
+    post:
+      tags:
+        - Authentication
+      summary: Login to user account
+      description: Authenticate user with email and password. Returns user data and access token.
+      operationId: loginUser
+      requestBody:
+        required: true
+        description: User login credentials
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Successful login
+                  value:
+                    status: success
+                    data:
+                      user:
+                        id: "64c9b8d3a7e9a2d8f0c1b234"
+                        name: "John Doe"
+                        email: "john@example.com"
+                        role: "user"
+                        avatar: "https://via.placeholder.com/150/cccccc/969696?text=User"
+                        emailVerified: true
+                        isActive: true
+                        createdAt: "2025-10-15T12:00:00.000Z"
+                        updatedAt: "2025-10-15T12:30:00.000Z"
+                      accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      message: "Logged in successfully."
+        '400':
+          description: Bad request - Invalid credentials or email not verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                invalidCredentials:
+                  summary: Invalid email or password
+                  value:
+                    status: fail
+                    data:
+                      message: "Email or password incorrect."
+                emailNotVerified:
+                  summary: Email not verified
+                  value:
+                    status: fail
+                    data:
+                      message: "Please verify your email before logging in. Check your inbox for the verification email."
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /google-login:
+    post:
+      tags:
+        - Authentication
+      summary: Google OAuth login
+      description: Authenticate user using Google OAuth credentials
+      operationId: googleLogin
+      requestBody:
+        required: true
+        description: Google OAuth user data
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoogleLoginRequest'
+      responses:
+        '200':
+          description: Google login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Successful Google login
+                  value:
+                    status: success
+                    data:
+                      user:
+                        id: "64c9b8d3a7e9a2d8f0c1b234"
+                        name: "John Doe"
+                        email: "john@gmail.com"
+                        role: "user"
+                        avatar: "https://lh3.googleusercontent.com/..."
+                        emailVerified: true
+                        isActive: true
+                        createdAt: "2025-10-15T12:00:00.000Z"
+                        updatedAt: "2025-10-15T12:30:00.000Z"
+                      accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      message: "Google login successful"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /refresh:
+    post:
+      tags:
+        - Authentication
+      summary: Refresh access token
+      description: Generate new access token using refresh token (from cookie or body)
+      operationId: refreshToken
+      requestBody:
+        required: false
+        description: Optional refresh token (if not provided in cookie)
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Access token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Token refreshed
+                  value:
+                    status: success
+                    data:
+                      accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      message: "Access token refreshed successfully"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout user
+      description: Logout user by clearing refresh token cookie
+      operationId: logoutUser
+      security: []  # Override global security - no auth required
+      responses:
+        '200':
+          description: Logged out successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Successful logout
+                  value:
+                    status: success
+                    data:
+                      message: "Logged out successfully."
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /verify-email:
+    post:
+      tags:
+        - Authentication
+      summary: Verify email address
+      description: Verify user's email address using verification token
+      operationId: verifyEmail
+      security: []  # No auth required for email verification
+      requestBody:
+        required: true
+        description: Email verification token
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyEmailRequest'
+      responses:
+        '200':
+          description: Email verified successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Email verified
+                  value:
+                    status: success
+                    data:
+                      message: "Email verified successfully! Welcome to our platform."
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /resend-verification:
+    post:
+      tags:
+        - Authentication
+      summary: Resend verification email
+      description: Resend email verification link to user's email address
+      operationId: resendVerificationEmail
+      security: []  # No auth required
+      requestBody:
+        required: true
+        description: User email address
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResendVerificationRequest'
+      responses:
+        '200':
+          description: Verification email sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Verification email sent
+                  value:
+                    status: success
+                    data:
+                      message: "Verification email sent successfully"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /forgot-password:
+    post:
+      tags:
+        - Authentication
+      summary: Request password reset
+      description: Send password reset link to user's email address
+      operationId: forgotPassword
+      security: []  # No auth required
+      requestBody:
+        required: true
+        description: User email address
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+      responses:
+        '200':
+          description: Password reset link sent if account exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Reset email sent
+                  value:
+                    status: success
+                    data:
+                      message: "If an account with that email exists, a password reset link has been sent."
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /reset-password:
+    post:
+      tags:
+        - Authentication
+      summary: Reset password
+      description: Reset user password using valid reset token
+      operationId: resetPassword
+      security: []  # No auth required
+      requestBody:
+        required: true
+        description: Reset token and new password
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Password reset successful
+                  value:
+                    status: success
+                    data:
+                      user:
+                        id: "64c9b8d3a7e9a2d8f0c1b234"
+                        name: "John Doe"
+                        email: "john@example.com"
+                        role: "user"
+                        emailVerified: true
+                        isActive: true
+                      accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      message: "Password reset successfully"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /change-password:
+    patch:
+      tags:
+        - Authentication
+      summary: Change password
+      description: Change password for authenticated user
+      operationId: changePassword
+      requestBody:
+        required: true
+        description: Current and new password
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Password changed
+                  value:
+                    status: success
+                    data:
+                      message: "Password changed successfully"
+        '400':
+          description: Bad request - Current password incorrect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                incorrectPassword:
+                  summary: Incorrect current password
+                  value:
+                    status: fail
+                    data:
+                      message: "Current password is incorrect"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /profile:
+    get:
+      tags:
+        - Authentication
+      summary: Get current user profile
+      description: Retrieve authenticated user's profile information
+      operationId: getProfile
+      responses:
+        '200':
+          description: User profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Profile retrieved
+                  value:
+                    status: success
+                    data:
+                      user:
+                        id: "64c9b8d3a7e9a2d8f0c1b234"
+                        name: "John Doe"
+                        email: "john@example.com"
+                        role: "user"
+                        avatar: "https://via.placeholder.com/150/cccccc/969696?text=User"
+                        phoneNumber: "+1234567890"
+                        emailVerified: true
+                        isActive: true
+                        address:
+                          street: "123 Main St"
+                          city: "New York"
+                          state: "NY"
+                          zipCode: "10001"
+                          country: "US"
+                        preferences:
+                          newsletter: true
+                          notifications: false
+                        createdAt: "2025-10-15T12:00:00.000Z"
+                        updatedAt: "2025-10-15T12:30:00.000Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    patch:
+      tags:
+        - Authentication
+      summary: Update user profile
+      description: Update authenticated user's profile information
+      operationId: updateProfile
+      requestBody:
+        required: true
+        description: Profile data to update
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Profile updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Profile updated
+                  value:
+                    status: success
+                    data:
+                      user:
+                        id: "64c9b8d3a7e9a2d8f0c1b234"
+                        name: "John Smith"
+                        email: "john@example.com"
+                        role: "user"
+                        phoneNumber: "+1234567890"
+                        address:
+                          street: "456 Oak Ave"
+                          city: "Los Angeles"
+                          state: "CA"
+                          zipCode: "90210"
+                          country: "US"
+                        preferences:
+                          newsletter: false
+                          notifications: true
+                      message: "Profile updated successfully"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /cart:
+    get:
+      tags:
+        - Cart
+      summary: Get user's cart
+      description: Retrieve the authenticated user's shopping cart with all items
+      operationId: getCart
+      responses:
+        '200':
+          description: Cart retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Cart retrieved
+                  value:
+                    status: success
+                    data:
+                      cart:
+                        id: "64c9b8d3a7e9a2d8f0c1b234"
+                        userId: "64c9b8d3a7e9a2d8f0c1b235"
+                        items:
+                          - productId: "64c9b8d3a7e9a2d8f0c1b236"
+                            quantity: 2
+                            price: 29.99
+                            addedAt: "2025-10-15T12:00:00.000Z"
+                            product:
+                              id: "64c9b8d3a7e9a2d8f0c1b236"
+                              name: "Wireless Headphones"
+                              price: 29.99
+                              images: ["https://example.com/headphones.jpg"]
+                              stock: 50
+                              isActive: true
+                          - productId: "64c9b8d3a7e9a2d8f0c1b237"
+                            quantity: 1
+                            price: 15.99
+                            addedAt: "2025-10-15T12:30:00.000Z"
+                            product:
+                              id: "64c9b8d3a7e9a2d8f0c1b237"
+                              name: "Phone Case"
+                              price: 15.99
+                              images: ["https://example.com/case.jpg"]
+                              stock: 100
+                              isActive: true
+                        subtotal: 75.97
+                        shipping: 5.99
+                        tax: 6.08
+                        totalPrice: 88.04
+                        isActive: true
+                        createdAt: "2025-10-15T10:00:00.000Z"
+                        updatedAt: "2025-10-15T12:30:00.000Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Cart not found for user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                cartNotFound:
+                  summary: Cart not found
+                  value:
+                    status: fail
+                    data:
+                      message: "Cart not found for user."
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    post:
+      tags:
+        - Cart
+      summary: Add item to cart
+      description: Add a product to the user's shopping cart
+      operationId: addToCart
+      requestBody:
+        required: true
+        description: Product and quantity to add to cart
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddToCartRequest'
+            examples:
+              success:
+                summary: Add product to cart
+                value:
+                  productId: "64c9b8d3a7e9a2d8f0c1b236"
+                  quantity: 2
+      responses:
+        '200':
+          description: Product added to cart successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Product added
+                  value:
+                    status: success
+                    data:
+                      message: "Product added to cart"
+                      cart:
+                        id: "64c9b8d3a7e9a2d8f0c1b234"
+                        userId: "64c9b8d3a7e9a2d8f0c1b235"
+                        items:
+                          - productId: "64c9b8d3a7e9a2d8f0c1b236"
+                            quantity: 2
+                            price: 29.99
+                            addedAt: "2025-10-15T12:00:00.000Z"
+                            product:
+                              id: "64c9b8d3a7e9a2d8f0c1b236"
+                              name: "Wireless Headphones"
+                              price: 29.99
+                              images: ["https://example.com/headphones.jpg"]
+                              stock: 50
+                              isActive: true
+                        subtotal: 59.98
+                        shipping: 5.99
+                        tax: 5.20
+                        totalPrice: 71.17
+                        isActive: true
+        '400':
+          description: Bad request - Insufficient stock or invalid data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                insufficientStock:
+                  summary: Insufficient stock
+                  value:
+                    status: fail
+                    data:
+                      message: "Insufficient stock. Available: 5"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    put:
+      tags:
+        - Cart
+      summary: Update cart item quantity
+      description: Update the quantity of a product in the user's shopping cart
+      operationId: updateCartItem
+      requestBody:
+        required: true
+        description: Product and new quantity
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddToCartRequest'
+            examples:
+              success:
+                summary: Update product quantity
+                value:
+                  productId: "64c9b8d3a7e9a2d8f0c1b236"
+                  quantity: 3
+      responses:
+        '200':
+          description: Cart item updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Quantity updated
+                  value:
+                    status: success
+                    data:
+                      message: "Cart item updated successfully"
+                      cart:
+                        id: "64c9b8d3a7e9a2d8f0c1b234"
+                        userId: "64c9b8d3a7e9a2d8f0c1b235"
+                        items:
+                          - productId: "64c9b8d3a7e9a2d8f0c1b236"
+                            quantity: 3
+                            price: 29.99
+                            addedAt: "2025-10-15T12:00:00.000Z"
+                            product:
+                              id: "64c9b8d3a7e9a2d8f0c1b236"
+                              name: "Wireless Headphones"
+                              price: 29.99
+                              images: ["https://example.com/headphones.jpg"]
+                              stock: 50
+                              isActive: true
+                        subtotal: 89.97
+                        shipping: 5.99
+                        tax: 7.68
+                        totalPrice: 103.64
+                        isActive: true
+        '400':
+          description: Bad request - Insufficient stock
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                insufficientStock:
+                  summary: Insufficient stock
+                  value:
+                    status: fail
+                    data:
+                      message: "Insufficient stock. Available: 2"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    delete:
+      tags:
+        - Cart
+      summary: Clear cart
+      description: Remove all items from the user's shopping cart
+      operationId: clearCart
+      responses:
+        '200':
+          description: Cart cleared successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Cart cleared
+                  value:
+                    status: success
+                    data:
+                      message: "Cart cleared successfully."
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /cart/{productId}:
+    delete:
+      tags:
+        - Cart
+      summary: Remove item from cart
+      description: Remove a specific product from the user's shopping cart
+      operationId: removeFromCart
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      responses:
+        '200':
+          description: Product removed from cart successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Product removed
+                  value:
+                    status: success
+                    data:
+                      message: "Product removed from cart successfully."
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /products:
+    get:
+      tags:
+        - Products
+      summary: Get all products
+      description: Retrieve paginated products with filtering, sorting, and search capabilities
+      operationId: getAllProducts
+      parameters:
+        - $ref: '#/components/parameters/PaginationPage'
+        - $ref: '#/components/parameters/PaginationLimit'
+        - in: query
+          name: category
+          schema:
+            type: string
+          description: Filter by product category
+        - in: query
+          name: minPrice
+          schema:
+            type: number
+            format: float
+            minimum: 0
+          description: Minimum price filter
+        - in: query
+          name: maxPrice
+          schema:
+            type: number
+            format: float
+            minimum: 0
+          description: Maximum price filter
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search term for product name and description
+        - in: query
+          name: featured
+          schema:
+            type: boolean
+          description: Filter featured products only
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum: [price_asc, price_desc, rating, name, createdAt]
+          description: Sort products by criteria
+      responses:
+        '200':
+          description: Products retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Products retrieved
+                  value:
+                    status: success
+                    data:
+                      products:
+                        - id: "64c9b8d3a7e9a2d8f0c1b236"
+                          name: "Wireless Headphones"
+                          description: "High-quality wireless headphones with noise cancellation"
+                          category: "electronics"
+                          images: 
+                            - "https://example.com/headphones1.jpg"
+                            - "https://example.com/headphones2.jpg"
+                          price: 29.99
+                          originalPrice: 39.99
+                          stock: 50
+                          brand: "AudioTech"
+                          features:
+                            - "Noise Cancellation"
+                            - "Bluetooth 5.0"
+                            - "20h Battery"
+                          ratings:
+                            average: 4.5
+                            count: 120
+                          tags: ["wireless", "audio", "headphones"]
+                          isActive: true
+                          isFeatured: true
+                          createdAt: "2025-10-15T10:00:00.000Z"
+                          updatedAt: "2025-10-15T12:00:00.000Z"
+                      pagination:
+                        total: 150
+                        currentPage: 1
+                        totalPages: 13
+                        pageSize: 12
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /products/featured:
+    get:
+      tags:
+        - Products
+      summary: Get featured products
+      description: Retrieve featured products sorted by rating
+      operationId: getFeaturedProducts
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 8
+            minimum: 1
+            maximum: 20
+          description: Number of featured products to return
+      responses:
+        '200':
+          description: Featured products retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Featured products
+                  value:
+                    status: success
+                    data:
+                      products:
+                        - id: "64c9b8d3a7e9a2d8f0c1b236"
+                          name: "Wireless Headphones"
+                          description: "High-quality wireless headphones"
+                          category: "electronics"
+                          images: ["https://example.com/headphones.jpg"]
+                          price: 29.99
+                          originalPrice: 39.99
+                          stock: 50
+                          brand: "AudioTech"
+                          ratings:
+                            average: 4.5
+                            count: 120
+                          isActive: true
+                          isFeatured: true
+                        - id: "64c9b8d3a7e9a2d8f0c1b237"
+                          name: "Smart Watch"
+                          description: "Feature-rich smartwatch"
+                          category: "electronics"
+                          images: ["https://example.com/watch.jpg"]
+                          price: 199.99
+                          originalPrice: 249.99
+                          stock: 25
+                          brand: "TechWear"
+                          ratings:
+                            average: 4.2
+                            count: 89
+                          isActive: true
+                          isFeatured: true
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /products/categories:
+    get:
+      tags:
+        - Products
+      summary: Get product categories
+      description: Retrieve all available product categories with product counts
+      operationId: getProductCategories
+      responses:
+        '200':
+          description: Categories retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Categories list
+                  value:
+                    status: success
+                    data:
+                      categories:
+                        - category: "electronics"
+                          count: 45
+                        - category: "clothing"
+                          count: 78
+                        - category: "home"
+                          count: 32
+                        - category: "sports"
+                          count: 23
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /products/search:
+    get:
+      tags:
+        - Products
+      summary: Search products
+      description: Search products with advanced filtering and sorting
+      operationId: searchProducts
+      parameters:
+        - in: query
+          name: query
+          schema:
+            type: string
+          description: Search query text
+        - in: query
+          name: category
+          schema:
+            type: string
+          description: Filter by category
+        - in: query
+          name: minPrice
+          schema:
+            type: number
+            format: float
+          description: Minimum price
+        - in: query
+          name: maxPrice
+          schema:
+            type: number
+            format: float
+          description: Maximum price
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum: [price_asc, price_desc, rating, name, createdAt]
+          description: Sort results
+        - $ref: '#/components/parameters/PaginationPage'
+        - $ref: '#/components/parameters/PaginationLimit'
+      responses:
+        '200':
+          description: Search results retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Search results
+                  value:
+                    status: success
+                    data:
+                      products:
+                        - id: "64c9b8d3a7e9a2d8f0c1b236"
+                          name: "Wireless Headphones"
+                          description: "High-quality wireless headphones"
+                          category: "electronics"
+                          images: ["https://example.com/headphones.jpg"]
+                          price: 29.99
+                          stock: 50
+                          brand: "AudioTech"
+                          ratings:
+                            average: 4.5
+                            count: 120
+                          isActive: true
+                          isFeatured: true
+                      pagination:
+                        total: 15
+                        currentPage: 1
+                        totalPages: 2
+                        pageSize: 12
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /products/{productId}:
+    get:
+      tags:
+        - Products
+      summary: Get single product
+      description: Retrieve detailed information about a specific product
+      operationId: getSingleProduct
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      responses:
+        '200':
+          description: Product retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Product details
+                  value:
+                    status: success
+                    data:
+                      product:
+                        id: "64c9b8d3a7e9a2d8f0c1b236"
+                        name: "Wireless Headphones"
+                        description: "High-quality wireless headphones with active noise cancellation technology. Perfect for travel and office use."
+                        category: "electronics"
+                        images:
+                          - "https://example.com/headphones1.jpg"
+                          - "https://example.com/headphones2.jpg"
+                          - "https://example.com/headphones3.jpg"
+                        price: 29.99
+                        originalPrice: 39.99
+                        stock: 50
+                        brand: "AudioTech"
+                        features:
+                          - "Active Noise Cancellation"
+                          - "Bluetooth 5.0"
+                          - "20-hour battery life"
+                          - "Quick charge (15 min = 3 hours)"
+                          - "Built-in microphone"
+                        ratings:
+                          average: 4.5
+                          count: 120
+                        tags: ["wireless", "audio", "headphones", "bluetooth"]
+                        isActive: true
+                        isFeatured: true
+                        createdAt: "2025-10-15T10:00:00.000Z"
+                        updatedAt: "2025-10-15T12:00:00.000Z"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /orders:
+    get:
+      tags:
+        - Orders
+      summary: Get user orders
+      description: Retrieve paginated list of authenticated user's orders
+      operationId: getOrders
+      parameters:
+        - $ref: '#/components/parameters/PaginationPage'
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 50
+          description: Number of orders per page
+      responses:
+        '200':
+          description: Orders retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Orders list
+                  value:
+                    status: success
+                    data:
+                      orders:
+                        - id: "64c9b8d3a7e9a2d8f0c1b238"
+                          orderNumber: "ORD-2025-001"
+                          userId: "64c9b8d3a7e9a2d8f0c1b235"
+                          cartId: "64c9b8d3a7e9a2d8f0c1b234"
+                          items:
+                            - productId: "64c9b8d3a7e9a2d8f0c1b236"
+                              quantity: 2
+                              name: "Wireless Headphones"
+                              price: 29.99
+                              image: "https://example.com/headphones.jpg"
+                              product:
+                                id: "64c9b8d3a7e9a2d8f0c1b236"
+                                name: "Wireless Headphones"
+                                price: 29.99
+                                image: "https://example.com/headphones.jpg"
+                            - productId: "64c9b8d3a7e9a2d8f0c1b237"
+                              quantity: 1
+                              name: "Phone Case"
+                              price: 15.99
+                              image: "https://example.com/case.jpg"
+                              product:
+                                id: "64c9b8d3a7e9a2d8f0c1b237"
+                                name: "Phone Case"
+                                price: 15.99
+                                image: "https://example.com/case.jpg"
+                          subtotal: 75.97
+                          tax: 6.08
+                          shipping: 5.99
+                          totalPrice: 88.04
+                          shippingAddress:
+                            street: "123 Main St"
+                            city: "New York"
+                            state: "NY"
+                            zipCode: "10001"
+                            country: "US"
+                            phone: "+1234567890"
+                          billingAddress:
+                            street: "123 Main St"
+                            city: "New York"
+                            state: "NY"
+                            zipCode: "10001"
+                            country: "US"
+                          status: "processing"
+                          paymentStatus: "paid"
+                          paymentMethod: "credit_card"
+                          trackingNumber: "TRK123456789"
+                          isActive: true
+                          createdAt: "2025-10-15T14:00:00.000Z"
+                          updatedAt: "2025-10-15T14:30:00.000Z"
+                      pagination:
+                        total: 5
+                        currentPage: 1
+                        totalPages: 1
+                        pageSize: 10
+                empty:
+                  summary: No orders
+                  value:
+                    status: success
+                    data:
+                      orders: []
+                      message: "You have no orders yet."
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    post:
+      tags:
+        - Orders
+      summary: Create new order
+      description: Create a new order from user's cart items
+      operationId: makeOrder
+      requestBody:
+        required: true
+        description: Order details and addresses
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
+            examples:
+              success:
+                summary: Create order with addresses
+                value:
+                  shippingAddress:
+                    street: "123 Main St"
+                    city: "New York"
+                    state: "NY"
+                    zipCode: "10001"
+                    country: "US"
+                    phone: "+1234567890"
+                  billingAddress:
+                    street: "123 Main St"
+                    city: "New York"
+                    state: "NY"
+                    zipCode: "10001"
+                    country: "US"
+      responses:
+        '201':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Order created
+                  value:
+                    status: success
+                    data:
+                      message: "Order placed successfully"
+                      order:
+                        id: "64c9b8d3a7e9a2d8f0c1b238"
+                        orderNumber: "ORD-2025-001"
+                        totalPrice: 88.04
+                        status: "pending"
+        '400':
+          description: Bad request - Cart empty or insufficient stock
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                emptyCart:
+                  summary: Empty cart
+                  value:
+                    status: fail
+                    data:
+                      message: "Cart is empty or not found."
+                insufficientStock:
+                  summary: Insufficient stock
+                  value:
+                    status: fail
+                    data:
+                      message: "Insufficient stock for Wireless Headphones. Available: 5"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /orders/{id}:
+    get:
+      tags:
+        - Orders
+      summary: Get single order
+      description: Retrieve detailed information about a specific order
+      operationId: getSingleOrder
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: objectid
+          description: Order ID
+          example: "64c9b8d3a7e9a2d8f0c1b238"
+      responses:
+        '200':
+          description: Order retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Order details
+                  value:
+                    status: success
+                    data:
+                      order:
+                        id: "64c9b8d3a7e9a2d8f0c1b238"
+                        orderNumber: "ORD-2025-001"
+                        userId: "64c9b8d3a7e9a2d8f0c1b235"
+                        cartId: "64c9b8d3a7e9a2d8f0c1b234"
+                        items:
+                          - productId: "64c9b8d3a7e9a2d8f0c1b236"
+                            quantity: 2
+                            name: "Wireless Headphones"
+                            price: 29.99
+                            image: "https://example.com/headphones.jpg"
+                            product:
+                              id: "64c9b8d3a7e9a2d8f0c1b236"
+                              name: "Wireless Headphones"
+                              price: 29.99
+                              image: "https://example.com/headphones.jpg"
+                          - productId: "64c9b8d3a7e9a2d8f0c1b237"
+                            quantity: 1
+                            name: "Phone Case"
+                            price: 15.99
+                            image: "https://example.com/case.jpg"
+                            product:
+                              id: "64c9b8d3a7e9a2d8f0c1b237"
+                              name: "Phone Case"
+                              price: 15.99
+                              image: "https://example.com/case.jpg"
+                        subtotal: 75.97
+                        tax: 6.08
+                        shipping: 5.99
+                        totalPrice: 88.04
+                        shippingAddress:
+                          street: "123 Main St"
+                          city: "New York"
+                          state: "NY"
+                          zipCode: "10001"
+                          country: "US"
+                          phone: "+1234567890"
+                        billingAddress:
+                          street: "123 Main St"
+                          city: "New York"
+                          state: "NY"
+                          zipCode: "10001"
+                          country: "US"
+                        status: "processing"
+                        paymentStatus: "paid"
+                        paymentMethod: "credit_card"
+                        paymentId: "pay_123456789"
+                        paymentDate: "2025-10-15T14:05:00.000Z"
+                        trackingNumber: "TRK123456789"
+                        notes: "Handle with care"
+                        isActive: true
+                        createdAt: "2025-10-15T14:00:00.000Z"
+                        updatedAt: "2025-10-15T14:30:00.000Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    patch:
+      tags:
+        - Orders
+      summary: Cancel order
+      description: Cancel a pending order (only if not processing/shipped/delivered and not paid)
+      operationId: updateOrder
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: objectid
+          description: Order ID to cancel
+          example: "64c9b8d3a7e9a2d8f0c1b238"
+      responses:
+        '200':
+          description: Order cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Order cancelled
+                  value:
+                    status: success
+                    data:
+                      message: "Order cancelled successfully"
+        '400':
+          description: Bad request - Cannot cancel order
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                cannotCancel:
+                  summary: Cannot cancel
+                  value:
+                    status: fail
+                    data:
+                      message: "Order cannot be cancelled at this stage"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /reviews:
+    post:
+      tags:
+        - Reviews
+      summary: Create a review
+      description: Create a new review for a product (only if user has purchased the product)
+      operationId: createReview
+      requestBody:
+        required: true
+        description: Review details
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReviewRequest'
+            examples:
+              success:
+                summary: Create review
+                value:
+                  productId: "64c9b8d3a7e9a2d8f0c1b236"
+                  rating: 5
+                  comment: "Excellent product! Great quality and fast delivery."
+      responses:
+        '201':
+          description: Review created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Review created
+                  value:
+                    status: success
+                    data:
+                      review:
+                        id: "64c9b8d3a7e9a2d8f0c1b239"
+                        userId: "64c9b8d3a7e9a2d8f0c1b235"
+                        productId: "64c9b8d3a7e9a2d8f0c1b236"
+                        rating: 5
+                        comment: "Excellent product! Great quality and fast delivery."
+                        isActive: true
+                        createdAt: "2025-10-15T15:00:00.000Z"
+                        updatedAt: "2025-10-15T15:00:00.000Z"
+                      message: "Review created successfully"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden - User hasn't purchased the product
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                notPurchased:
+                  summary: Not purchased
+                  value:
+                    status: fail
+                    data:
+                      message: "You can only review products you have purchased"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /reviews/my-reviews:
+    get:
+      tags:
+        - Reviews
+      summary: Get user's reviews
+      description: Retrieve paginated list of authenticated user's reviews
+      operationId: getUserReviews
+      parameters:
+        - $ref: '#/components/parameters/PaginationPage'
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 50
+          description: Number of reviews per page
+      responses:
+        '200':
+          description: User reviews retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: User reviews
+                  value:
+                    status: success
+                    data:
+                      reviews:
+                        - id: "64c9b8d3a7e9a2d8f0c1b239"
+                          userId: "64c9b8d3a7e9a2d8f0c1b235"
+                          productId: "64c9b8d3a7e9a2d8f0c1b236"
+                          rating: 5
+                          comment: "Excellent product! Great quality and fast delivery."
+                          isActive: true
+                          product:
+                            id: "64c9b8d3a7e9a2d8f0c1b236"
+                            name: "Wireless Headphones"
+                            image: "https://example.com/headphones.jpg"
+                            price: 29.99
+                          createdAt: "2025-10-15T15:00:00.000Z"
+                          updatedAt: "2025-10-15T15:00:00.000Z"
+                        - id: "64c9b8d3a7e9a2d8f0c1b240"
+                          userId: "64c9b8d3a7e9a2d8f0c1b235"
+                          productId: "64c9b8d3a7e9a2d8f0c1b237"
+                          rating: 4
+                          comment: "Good product but delivery was a bit slow."
+                          isActive: true
+                          product:
+                            id: "64c9b8d3a7e9a2d8f0c1b237"
+                            name: "Phone Case"
+                            image: "https://example.com/case.jpg"
+                            price: 15.99
+                          createdAt: "2025-10-14T10:00:00.000Z"
+                          updatedAt: "2025-10-14T10:00:00.000Z"
+                      pagination:
+                        total: 8
+                        currentPage: 1
+                        totalPages: 1
+                        pageSize: 10
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /reviews/product/{productId}:
+    get:
+      tags:
+        - Reviews
+      summary: Get product reviews
+      description: Retrieve paginated reviews for a specific product
+      operationId: getProductReviews
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+        - $ref: '#/components/parameters/PaginationPage'
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 50
+          description: Number of reviews per page
+      responses:
+        '200':
+          description: Product reviews retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Product reviews
+                  value:
+                    status: success
+                    data:
+                      reviews:
+                        - id: "64c9b8d3a7e9a2d8f0c1b239"
+                          userId: "64c9b8d3a7e9a2d8f0c1b235"
+                          productId: "64c9b8d3a7e9a2d8f0c1b236"
+                          rating: 5
+                          comment: "Excellent product! Great quality and fast delivery. Would definitely recommend to others."
+                          isActive: true
+                          user:
+                            id: "64c9b8d3a7e9a2d8f0c1b235"
+                            name: "John Doe"
+                            avatar: "https://via.placeholder.com/150/cccccc/969696?text=User"
+                          createdAt: "2025-10-15T15:00:00.000Z"
+                          updatedAt: "2025-10-15T15:00:00.000Z"
+                        - id: "64c9b8d3a7e9a2d8f0c1b241"
+                          userId: "64c9b8d3a7e9a2d8f0c1b242"
+                          productId: "64c9b8d3a7e9a2d8f0c1b236"
+                          rating: 4
+                          comment: "Good sound quality but battery life could be better. Overall satisfied with the purchase."
+                          isActive: true
+                          user:
+                            id: "64c9b8d3a7e9a2d8f0c1b242"
+                            name: "Jane Smith"
+                            avatar: "https://example.com/avatar2.jpg"
+                          createdAt: "2025-10-14T12:00:00.000Z"
+                          updatedAt: "2025-10-14T12:00:00.000Z"
+                      pagination:
+                        total: 15
+                        currentPage: 1
+                        totalPages: 2
+                        pageSize: 10
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /reviews/{id}:
+    patch:
+      tags:
+        - Reviews
+      summary: Update review
+      description: Update an existing review (only by the review author)
+      operationId: updateReview
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: objectid
+          description: Review ID
+          example: "64c9b8d3a7e9a2d8f0c1b239"
+      requestBody:
+        required: true
+        description: Updated review details
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateReviewRequest'
+            examples:
+              success:
+                summary: Update review
+                value:
+                  rating: 4
+                  comment: "Updated review: Good product but could improve battery life."
+      responses:
+        '200':
+          description: Review updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Review updated
+                  value:
+                    status: success
+                    data:
+                      review:
+                        id: "64c9b8d3a7e9a2d8f0c1b239"
+                        userId: "64c9b8d3a7e9a2d8f0c1b235"
+                        productId: "64c9b8d3a7e9a2d8f0c1b236"
+                        rating: 4
+                        comment: "Updated review: Good product but could improve battery life."
+                        isActive: true
+                        createdAt: "2025-10-15T15:00:00.000Z"
+                        updatedAt: "2025-10-15T15:30:00.000Z"
+                      message: "Review updated successfully"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    delete:
+      tags:
+        - Reviews
+      summary: Delete review
+      description: Soft delete a review (only by the review author)
+      operationId: deleteReview
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: objectid
+          description: Review ID
+          example: "64c9b8d3a7e9a2d8f0c1b239"
+      responses:
+        '200':
+          description: Review deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Review deleted
+                  value:
+                    status: success
+                    data:
+                      message: "Review deleted successfully"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /payment/checkout:
+    post:
+      tags:
+        - Payments
+      summary: Create checkout session
+      description: Create a Stripe checkout session for order payment
+      operationId: createCheckoutSession
+      requestBody:
+        required: true
+        description: Order ID for payment
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - orderId
+              properties:
+                orderId:
+                  type: string
+                  format: objectid
+                  example: "64c9b8d3a7e9a2d8f0c1b238"
+            examples:
+              success:
+                summary: Create checkout session
+                value:
+                  orderId: "64c9b8d3a7e9a2d8f0c1b238"
+      responses:
+        '200':
+          description: Checkout session created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Checkout session created
+                  value:
+                    status: success
+                    data:
+                      URL: "https://checkout.stripe.com/pay/cs_test_123456789"
+                      ID: "cs_test_123456789"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /payment/success:
+    get:
+      tags:
+        - Payments
+      summary: Payment success callback
+      description: Redirect URL for successful payments (called by Stripe after payment completion)
+      operationId: paymentSuccess
+      security: []  # No auth required - called by Stripe
+      responses:
+        '200':
+          description: Payment completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Payment success
+                  value:
+                    status: success
+                    data:
+                      message: "✅ Payment completed successfully. Order will be delivered shortly."
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /payment/cancel:
+    get:
+      tags:
+        - Payments
+      summary: Payment cancel callback
+      description: Redirect URL for cancelled payments (called by Stripe when user cancels payment)
+      operationId: paymentCancel
+      security: []  # No auth required - called by Stripe
+      responses:
+        '200':
+          description: Payment cancelled by user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                cancelled:
+                  summary: Payment cancelled
+                  value:
+                    status: fail
+                    data:
+                      message: "❌ Payment was canceled by the user. No changes were made."
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /webhook:
+    post:
+      tags:
+        - Webhooks
+      summary: Stripe webhook handler
+      description: Handle Stripe webhook events for payment processing and order updates
+      operationId: handleWebhook
+      security: []  # No auth required - uses Stripe signature
+      requestBody:
+        required: true
+        description: Stripe webhook event payload
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Raw Stripe event data
+            examples:
+              checkoutCompleted:
+                summary: Checkout session completed
+                value:
+                  id: "evt_123456789"
+                  object: "event"
+                  api_version: "2023-10-16"
+                  created: 1699999999,
+                  data: 
+                    object:
+                      id: "cs_test_123456789"
+                      object: "checkout.session"
+                      metadata: 
+                        userId: "64c9b8d3a7e9a2d8f0c1b235"
+                        orderId: "64c9b8d3a7e9a2d8f0c1b248"
+                      payment_intent: "pi_123456789"
+                      status: "complete"
+                  type: "checkout.session.completed"
+      parameters:
+        - in: header
+          name: stripe-signature
+          required: true
+          schema:
+            type: string
+          description: Stripe signature for webhook verification
+          example: "t=1699999999,v1=abc123def456..."
+      responses:
+        '200':
+          description: Webhook processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookResponse'
+              examples:
+                success:
+                  summary: Webhook processed
+                  value:
+                    status: "success"
+                    received: true
+        '400':
+          description: Invalid webhook signature
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookErrorResponse'
+              examples:
+                invalidSignature:
+                  summary: Invalid signature
+                  value:
+                    status: "fail"
+                    message: "Webhook Error: Invalid signature"
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /admin/users:
+    get:
+      tags:
+        - Admin - Users
+      summary: Get all users (Admin)
+      description: Retrieve paginated list of all users with filtering capabilities (Admin role required)
+      operationId: adminGetAllUsers
+      parameters:
+        - $ref: '#/components/parameters/PaginationPage'
+        - $ref: '#/components/parameters/PaginationLimit'
+        - in: query
+          name: role
+          schema:
+            type: string
+            enum: [user, admin]
+          description: Filter by user role
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search users by name or email
+      responses:
+        '200':
+          description: Users retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Users list
+                  value:
+                    status: success
+                    data:
+                      users:
+                        - id: "64c9b8d3a7e9a2d8f0c1b235"
+                          name: "John Doe"
+                          email: "john@example.com"
+                          role: "user"
+                          avatar: "https://via.placeholder.com/150/cccccc/969696?text=User"
+                          emailVerified: true
+                          isActive: true
+                          createdAt: "2025-10-15T10:00:00.000Z"
+                          updatedAt: "2025-10-15T12:00:00.000Z"
+                        - id: "64c9b8d3a7e9a2d8f0c1b242"
+                          name: "Jane Smith"
+                          email: "jane@example.com"
+                          role: "admin"
+                          avatar: "https://example.com/avatar2.jpg"
+                          emailVerified: true
+                          isActive: true
+                          createdAt: "2025-10-14T09:00:00.000Z"
+                          updatedAt: "2025-10-14T09:00:00.000Z"
+                      pagination:
+                        total: 150
+                        currentPage: 1
+                        totalPages: 15
+                        pageSize: 10
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden - Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                forbidden:
+                  summary: Insufficient permissions
+                  value:
+                    status: fail
+                    data:
+                      message: "Admin access required"
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /admin/users/{id}:
+    get:
+      tags:
+        - Admin - Users
+      summary: Get single user (Admin)
+      description: Retrieve detailed information about a specific user (Admin role required)
+      operationId: adminGetSingleUser
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: objectid
+          description: User ID
+          example: "64c9b8d3a7e9a2d8f0c1b235"
+      responses:
+        '200':
+          description: User retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: User details
+                  value:
+                    status: success
+                    data:
+                      id: "64c9b8d3a7e9a2d8f0c1b235"
+                      name: "John Doe"
+                      email: "john@example.com"
+                      role: "user"
+                      avatar: "https://via.placeholder.com/150/cccccc/969696?text=User"
+                      phoneNumber: "+1234567890"
+                      emailVerified: true
+                      isActive: true
+                      address:
+                        street: "123 Main St"
+                        city: "New York"
+                        state: "NY"
+                        zipCode: "10001"
+                        country: "US"
+                      preferences:
+                        newsletter: true
+                        notifications: false
+                      createdAt: "2025-10-15T10:00:00.000Z"
+                      updatedAt: "2025-10-15T12:00:00.000Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    delete:
+      tags:
+        - Admin - Users
+      summary: Delete user (Admin)
+      description: Soft delete a user account (Admin only, cannot delete own account)
+      operationId: adminDeleteUser
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: objectid
+          description: User ID to delete
+          example: "64c9b8d3a7e9a2d8f0c1b235"
+      responses:
+        '200':
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: User deleted
+                  value:
+                    status: success
+                    data:
+                      message: "User deleted successfully"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Forbidden - Cannot delete own account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                selfDelete:
+                  summary: Cannot delete self
+                  value:
+                    status: fail
+                    data:
+                      message: "Admins cannot delete their own account for security reasons."
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /admin/products:
+    post:
+      tags:
+        - Admin - Products
+      summary: Create product (Admin)
+      description: Create a new product with image uploads (Admin role required)
+      operationId: adminAddProduct
+      requestBody:
+        required: true
+        description: Product data with images
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - name
+                - description
+                - category
+                - price
+                - stock
+              properties:
+                name:
+                  type: string
+                  example: "Wireless Headphones"
+                description:
+                  type: string
+                  example: "High-quality wireless headphones with noise cancellation"
+                category:
+                  type: string
+                  example: "electronics"
+                price:
+                  type: number
+                  format: float
+                  example: 29.99
+                originalPrice:
+                  type: number
+                  format: float
+                  example: 39.99
+                stock:
+                  type: integer
+                  example: 50
+                brand:
+                  type: string
+                  example: "AudioTech"
+                features:
+                  type: string
+                  description: Comma-separated list of features
+                  example: "Noise Cancellation, Bluetooth 5.0"
+                tags:
+                  type: string
+                  description: Comma-separated list of tags
+                  example: "wireless, audio, headphones"
+                isFeatured:
+                  type: boolean
+                  example: true
+                image:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Product images (max 5)
+      responses:
+        '201':
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Product created
+                  value:
+                    status: success
+                    data:
+                      product:
+                        id: "64c9b8d3a7e9a2d8f0c1b236"
+                        name: "Wireless Headphones"
+                        description: "High-quality wireless headphones with noise cancellation"
+                        category: "electronics"
+                        images:
+                          - "https://res.cloudinary.com/example/image1.jpg"
+                          - "https://res.cloudinary.com/example/image2.jpg"
+                        price: 29.99
+                        originalPrice: 39.99
+                        stock: 50
+                        brand: "AudioTech"
+                        features: ["Noise Cancellation", "Bluetooth 5.0"]
+                        tags: ["wireless", "audio", "headphones"]
+                        ratings:
+                          average: 0
+                          count: 0
+                        isActive: true
+                        isFeatured: true
+                        createdAt: "2025-10-15T16:00:00.000Z"
+                        updatedAt: "2025-10-15T16:00:00.000Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /admin/products/{productId}:
+    patch:
+      tags:
+        - Admin - Products
+      summary: Update product (Admin)
+      description: Update product information and optionally add new images (Admin role required)
+      operationId: adminUpdateProduct
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      requestBody:
+        required: true
+        description: Product update data with optional new images
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: "Updated Wireless Headphones"
+                description:
+                  type: string
+                  example: "Updated description with better features"
+                category:
+                  type: string
+                  example: "electronics"
+                price:
+                  type: number
+                  format: float
+                  example: 27.99
+                originalPrice:
+                  type: number
+                  format: float
+                  example: 37.99
+                stock:
+                  type: integer
+                  example: 45
+                brand:
+                  type: string
+                  example: "AudioTech Pro"
+                features:
+                  type: string
+                  example: "Noise Cancellation, Bluetooth 5.2, 30h Battery"
+                tags:
+                  type: string
+                  example: "wireless, audio, headphones, premium"
+                isFeatured:
+                  type: boolean
+                  example: true
+                image:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                  description: Additional product images (max 5)
+      responses:
+        '200':
+          description: Product updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Product updated
+                  value:
+                    status: success
+                    data:
+                      updatedProduct:
+                        id: "64c9b8d3a7e9a2d8f0c1b236"
+                        name: "Updated Wireless Headphones"
+                        description: "Updated description with better features"
+                        category: "electronics"
+                        images:
+                          - "https://res.cloudinary.com/example/old1.jpg"
+                          - "https://res.cloudinary.com/example/old2.jpg"
+                          - "https://res.cloudinary.com/example/new1.jpg"
+                        price: 27.99
+                        originalPrice: 37.99
+                        stock: 45
+                        brand: "AudioTech Pro"
+                        features: ["Noise Cancellation", "Bluetooth 5.2", "30h Battery"]
+                        tags: ["wireless", "audio", "headphones", "premium"]
+                        isActive: true
+                        isFeatured: true
+                        updatedAt: "2025-10-15T16:30:00.000Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    delete:
+      tags:
+        - Admin - Products
+      summary: Delete product (Admin)
+      description: Soft delete a product (Admin role required)
+      operationId: adminDeleteProduct
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      responses:
+        '200':
+          description: Product deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Product deleted
+                  value:
+                    status: success
+                    data:
+                      message: "Product deleted successfully"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /admin/orders:
+    get:
+      tags:
+        - Admin - Orders
+      summary: Get all orders (Admin)
+      description: Retrieve paginated list of all orders with filtering (Admin role required)
+      operationId: adminGetAllOrders
+      parameters:
+        - $ref: '#/components/parameters/PaginationPage'
+        - $ref: '#/components/parameters/PaginationLimit'
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, processing, shipped, delivered, cancelled]
+          description: Filter by order status
+        - in: query
+          name: userId
+          schema:
+            type: string
+            format: objectid
+          description: Filter by user ID
+      responses:
+        '200':
+          description: Orders retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Orders list
+                  value:
+                    status: success
+                    data:
+                      orders:
+                        - id: "64c9b8d3a7e9a2d8f0c1b238"
+                          orderNumber: "ORD-2025-001"
+                          userId:
+                            id: "64c9b8d3a7e9a2d8f0c1b235"
+                            name: "John Doe"
+                            email: "john@example.com"
+                          items:
+                            - productId: "64c9b8d3a7e9a2d8f0c1b236"
+                              name: "Wireless Headphones"
+                              price: 29.99
+                          totalPrice: 88.04
+                          status: "processing"
+                          paymentStatus: "paid"
+                          createdAt: "2025-10-15T14:00:00.000Z"
+                      pagination:
+                        total: 50
+                        currentPage: 1
+                        totalPages: 5
+                        pageSize: 10
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /admin/orders/{id}:
+    get:
+      tags:
+        - Admin - Orders
+      summary: Get single order (Admin)
+      description: Retrieve detailed information about a specific order (Admin role required)
+      operationId: adminGetSingleOrder
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: objectid
+          description: Order ID
+          example: "64c9b8d3a7e9a2d8f0c1b238"
+      responses:
+        '200':
+          description: Order retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Order details
+                  value:
+                    status: success
+                    data:
+                      order:
+                        id: "64c9b8d3a7e9a2d8f0c1b238"
+                        orderNumber: "ORD-2025-001"
+                        userId:
+                          id: "64c9b8d3a7e9a2d8f0c1b235"
+                          name: "John Doe"
+                          email: "john@example.com"
+                        items:
+                          - productId: "64c9b8d3a7e9a2d8f0c1b236"
+                            quantity: 2
+                            name: "Wireless Headphones"
+                            price: 29.99
+                            product:
+                              id: "64c9b8d3a7e9a2d8f0c1b236"
+                              name: "Wireless Headphones"
+                              price: 29.99
+                        subtotal: 59.98
+                        tax: 4.80
+                        shipping: 5.99
+                        totalPrice: 70.77
+                        shippingAddress:
+                          street: "123 Main St"
+                          city: "New York"
+                          state: "NY"
+                          zipCode: "10001"
+                          country: "US"
+                          phone: "+1234567890"
+                        status: "processing"
+                        paymentStatus: "paid"
+                        paymentMethod: "credit_card"
+                        trackingNumber: "TRK123456789"
+                        isActive: true
+                        createdAt: "2025-10-15T14:00:00.000Z"
+                        updatedAt: "2025-10-15T14:30:00.000Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    patch:
+      tags:
+        - Admin - Orders
+      summary: Update order status (Admin)
+      description: Update order status and tracking information (Admin role required)
+      operationId: adminUpdateOrder
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: objectid
+          description: Order ID
+          example: "64c9b8d3a7e9a2d8f0c1b238"
+      requestBody:
+        required: true
+        description: Order status update
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrderStatusRequest'
+            examples:
+              success:
+                summary: Update order status
+                value:
+                  status: "shipped"
+                  trackingNumber: "TRK987654321"
+      responses:
+        '200':
+          description: Order status updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Order updated
+                  value:
+                    status: success
+                    data:
+                      message: "Order status updated successfully."
+                      data:
+                        id: "64c9b8d3a7e9a2d8f0c1b238"
+                        status: "shipped"
+                        trackingNumber: "TRK987654321"
+                        updatedAt: "2025-10-15T17:00:00.000Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+    delete:
+      tags:
+        - Admin - Orders
+      summary: Delete order (Admin)
+      description: Soft delete an order (Admin role required)
+      operationId: adminDeleteOrder
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: objectid
+          description: Order ID to delete
+          example: "64c9b8d3a7e9a2d8f0c1b238"
+      responses:
+        '200':
+          description: Order deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              examples:
+                success:
+                  summary: Order deleted
+                  value:
+                    status: success
+                    data:
+                      message: "Order deleted successfully"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication. For admin endpoints, user must have 'admin' role.
+
+  parameters:
+    PaginationPage:
+      in: query
+      name: page
+      schema:
+        type: integer
+        default: 1
+        minimum: 1
+      description: Page number for pagination
+    
+    PaginationLimit:
+      in: query
+      name: limit
+      schema:
+        type: integer
+        default: 10
+        minimum: 1
+        maximum: 100
+      description: Number of items per page
+    
+    ProductId:
+      in: path
+      name: productId
+      required: true
+      schema:
+        type: string
+        format: objectid
+      description: Product ID
+
+  responses:
+    Unauthorized:
+      description: Unauthorized - Invalid or missing authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse'
+          example:
+            status: fail
+            data:
+              message: "Unauthorized. Please log in."
+    
+    Forbidden:
+      description: Forbidden - Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse'
+          example:
+            status: fail
+            data:
+              message: "Insufficient permissions. Admin access required."
+    
+    BadRequest:
+      description: Bad request - Invalid input data
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse'
+          example:
+            status: fail
+            data:
+              message: "Invalid input data"
+    
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse'
+          example:
+            status: fail
+            data:
+              message: "Resource not found"
+    
+    ServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            status: error
+            data: "Internal Server Error"
+
+  schemas:
+    ApiResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success, fail, error]
+          example: success
+        data:
+          oneOf:
+            - type: object
+              description: Contains response data in success and fail cases
+              properties:
+                message:
+                  type: string
+                  example: "Successfully completed action"
+                accessToken:
+                  type: string
+                  example: "eyJhbGciOiJIUzI1NiIsInR5..."
+                user:
+                  $ref: '#/components/schemas/User'
+            - type: string
+              description: Contains error message or additional info in error cases
+              example: "Internal server error"
+            - type: object
+              nullable: true
+              description: If no data is available, null can be provided
+              example: null
+      required:
+        - status
+        - data
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [error]
+          example: error
+        data:
+          type: string
+          example: "Internal Server Error"
+
+    RegisterRequest:
+      type: object
+      required:
+        - name
+        - email
+        - password
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 50
+          example: "Demo"
+        email:
+          type: string
+          format: email
+          example: "demo@email.com"
+        password:
+          type: string
+          format: password
+          minLength: 6
+          example: "securePassd123@"
+        role:
+          type: string
+          enum: ["user", "admin"]
+          default: "user"
+          example: "user"
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "demo@email.com"
+        password:
+          type: string
+          format: password
+          example: "securePass123@"
+
+    GoogleLoginRequest:
+      type: object
+      required:
+        - googleId
+        - email
+        - name
+      properties:
+        googleId:
+          type: string
+          example: "1234567890"
+        email:
+          type: string
+          format: email
+          example: "demo@gmail.com"
+        name:
+          type: string
+          example: "Demo user"
+        picture:
+          type: string
+          format: uri
+          example: "https://lh3.googleusercontent.com/..."
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 50
+          example: "John Smith"
+        phoneNumber:
+          type: string
+          example: "+1234567890"
+        address:
+          type: object
+          properties:
+            street:
+              type: string
+              example: "456 Oak Ave"
+            city:
+              type: string
+              example: "Los Angeles"
+            state:
+              type: string
+              example: "CA"
+            zipCode:
+              type: string
+              example: "90210"
+            country:
+              type: string
+              default: "US"
+              example: "US"
+        preferences:
+          type: object
+          properties:
+            newsletter:
+              type: boolean
+              default: true
+              example: false
+            notifications:
+              type: boolean
+              default: true
+              example: true
+
+    VerifyEmailRequest:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+          example: "email_verification_token_123"
+
+    ResendVerificationRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+
+    RefreshTokenRequest:
+      type: object
+      properties:
+        refreshToken:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    ForgotPasswordRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+
+    ResetPasswordRequest:
+      type: object
+      required:
+        - token
+        - password
+      properties:
+        token:
+          type: string
+          example: "password_reset_token_123"
+        password:
+          type: string
+          format: password
+          minLength: 6
+          example: "newSecurePass123@"
+
+    ChangePasswordRequest:
+      type: object
+      required:
+        - currentPassword
+        - newPassword
+      properties:
+        currentPassword:
+          type: string
+          format: password
+          example: "oldPassword123@"
+        newPassword:
+          type: string
+          format: password
+          minLength: 6
+          example: "newSecurePassw456@"
+
+    AddToCartRequest:
+      type: object
+      required:
+        - productId
+        - quantity
+      properties:
+        productId:
+          type: string
+          format: objectid
+          example: "64c9b8d3a7e9a2d8f0c1b236"
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 99
+          example: 2
+
+    Cart:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "64c9b8d3a7e9a2d8f0c1b234"
+        userId:
+          type: string
+          example: "64c9b8d3a7e9a2d8f0c1b235"
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        subtotal:
+          type: number
+          format: float
+          example: 75.97
+        shipping:
+          type: number
+          format: float
+          example: 5.99
+        tax:
+          type: number
+          format: float
+          example: 6.08
+        totalPrice:
+          type: number
+          format: float
+          example: 88.04
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-10-15T10:00:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2025-10-15T12:30:00.000Z"
+
+    CartItem:
+      type: object
+      properties:
+        productId:
+          type: string
+          example: "64c9b8d3a7e9a2d8f0c1b236"
+        quantity:
+          type: integer
+          example: 2
+        price:
+          type: number
+          format: float
+          example: 29.99
+        addedAt:
+          type: string
+          format: date-time
+          example: "2025-10-15T12:00:00.000Z"
+        product:
+          $ref: '#/components/schemas/Product'
+
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "64c9b8d3a7e9a2d8f0c1b236"
+        name:
+          type: string
+          minLength: 3
+          maxLength: 100
+          example: "Wireless Headphones"
+        description:
+          type: string
+          maxLength: 1000
+          example: "High-quality wireless headphones with noise cancellation technology"
+        category:
+          type: string
+          example: "electronics"
+        images:
+          type: array
+          items:
+            type: string
+            format: uri
+          example: 
+            - "https://example.com/headphones1.jpg"
+            - "https://example.com/headphones2.jpg"
+        price:
+          type: number
+          format: float
+          minimum: 0
+          example: 29.99
+        originalPrice:
+          type: number
+          format: float
+          minimum: 0
+          example: 39.99
+        stock:
+          type: integer
+          minimum: 0
+          example: 50
+        brand:
+          type: string
+          example: "AudioTech"
+        features:
+          type: array
+          items:
+            type: string
+          example: 
+            - "Noise Cancellation"
+            - "Bluetooth 5.0"
+            - "20h Battery"
+        ratings:
+          type: object
+          properties:
+            average:
+              type: number
+              format: float
+              minimum: 0
+              maximum: 5
+              example: 4.5
+            count:
+              type: integer
+              minimum: 0
+              example: 120
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["wireless", "audio", "headphones"]
+        isActive:
+          type: boolean
+          example: true
+        isFeatured:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-10-15T10:00:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2025-10-15T12:00:00.000Z"
+
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+          example: 150
+        currentPage:
+          type: integer
+          example: 1
+        totalPages:
+          type: integer
+          example: 13
+        pageSize:
+          type: integer
+          example: 12
+
+    CategoryWithCount:
+      type: object
+      properties:
+        category:
+          type: string
+          example: "electronics"
+        count:
+          type: integer
+          example: 45
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "64c9b8d3a7e9a2d8f0c1b234"
+        name:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          example: "john@example.com"
+        role:
+          type: string
+          enum: [user, admin]
+          example: "user"
+        avatar:
+          type: string
+          format: uri
+          example: "https://via.placeholder.com/150/cccccc/969696?text=User"
+        phoneNumber:
+          type: string
+          example: "+1234567890"
+        emailVerified:
+          type: boolean
+          example: true
+        isActive:
+          type: boolean
+          example: true
+        address:
+          $ref: '#/components/schemas/Address'
+        preferences:
+          $ref: '#/components/schemas/UserPreferences'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-10-15T12:00:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2025-10-15T12:30:00.000Z"
+
+    Address:
+      type: object
+      properties:
+        street:
+          type: string
+          example: "123 Main St"
+        city:
+          type: string
+          example: "New York"
+        state:
+          type: string
+          example: "NY"
+        zipCode:
+          type: string
+          example: "10001"
+        country:
+          type: string
+          default: "US"
+          example: "US"
+
+    UserPreferences:
+      type: object
+      properties:
+        newsletter:
+          type: boolean
+          default: true
+          example: true
+        notifications:
+          type: boolean
+          default: true
+          example: false
+
+    CreateOrderRequest:
+      type: object
+      properties:
+        shippingAddress:
+          $ref: '#/components/schemas/ShippingAddress'
+        billingAddress:
+          $ref: '#/components/schemas/BillingAddress'
+
+    ShippingAddress:
+      type: object
+      properties:
+        street:
+          type: string
+          example: "123 Main St"
+        city:
+          type: string
+          example: "New York"
+        state:
+          type: string
+          example: "NY"
+        zipCode:
+          type: string
+          example: "10001"
+        country:
+          type: string
+          example: "US"
+        phone:
+          type: string
+          example: "+1234567890"
+
+    BillingAddress:
+      type: object
+      properties:
+        street:
+          type: string
+          example: "123 Main St"
+        city:
+          type: string
+          example: "New York"
+        state:
+          type: string
+          example: "NY"
+        zipCode:
+          type: string
+          example: "10001"
+        country:
+          type: string
+          example: "US"
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "64c9b8d3a7e9a2d8f0c1b238"
+        orderNumber:
+          type: string
+          example: "ORD-2025-001"
+        userId:
+          type: string
+          example: "64c9b8d3a7e9a2d8f0c1b235"
+        cartId:
+          type: string
+          example: "64c9b8d3a7e9a2d8f0c1b234"
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        subtotal:
+          type: number
+          format: float
+          example: 75.97
+        tax:
+          type: number
+          format: float
+          example: 6.08
+        shipping:
+          type: number
+          format: float
+          example: 5.99
+        totalPrice:
+          type: number
+          format: float
+          example: 88.04
+        shippingAddress:
+          $ref: '#/components/schemas/ShippingAddress'
+        billingAddress:
+          $ref: '#/components/schemas/BillingAddress'
+        status:
+          type: string
+          enum: ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled", "refunded"]
+          example: "processing"
+        paymentStatus:
+          type: string
+          enum: ["pending", "paid", "failed", "refunded"]
+          example: "paid"
+        paymentMethod:
+          type: string
+          enum: ["credit_card", "debit_card", "paypal", "stripe"]
+          example: "credit_card"
+        paymentId:
+          type: string
+          example: "pay_123456789"
+        paymentDate:
+          type: string
+          format: date-time
+          example: "2025-10-15T14:05:00.000Z"
+        trackingNumber:
+          type: string
+          example: "TRK123456789"
+        notes:
+          type: string
+          example: "Handle with care"
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-10-15T14:00:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2025-10-15T14:30:00.000Z"
+
+    OrderItem:
+      type: object
+      properties:
+        productId:
+          type: string
+          example: "64c9b8d3a7e9a2d8f0c1b236"
+        quantity:
+          type: integer
+          example: 2
+        name:
+          type: string
+          example: "Wireless Headphones"
+        price:
+          type: number
+          format: float
+          example: 29.99
+        image:
+          type: string
+          format: uri
+          example: "https://example.com/headphones.jpg"
+        product:
+          $ref: '#/components/schemas/Product'
+
+    CreateReviewRequest:
+      type: object
+      required:
+        - productId
+        - rating
+        - comment
+      properties:
+        productId:
+          type: string
+          format: objectid
+          example: "64c9b8d3a7e9a2d8f0c1b236"
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 5
+        comment:
+          type: string
+          minLength: 10
+          maxLength: 500
+          example: "Excellent product! Great quality and fast delivery."
+
+    UpdateReviewRequest:
+      type: object
+      properties:
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 4
+        comment:
+          type: string
+          minLength: 10
+          maxLength: 500
+          example: "Updated review: Good product but could improve battery life."
+
+    Review:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "64c9b8d3a7e9a2d8f0c1b239"
+        userId:
+          type: string
+          example: "64c9b8d3a7e9a2d8f0c1b235"
+        productId:
+          type: string
+          example: "64c9b8d3a7e9a2d8f0c1b236"
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 5
+        comment:
+          type: string
+          example: "Excellent product! Great quality and fast delivery."
+        isActive:
+          type: boolean
+          example: true
+        user:
+          $ref: '#/components/schemas/ReviewUser'
+        product:
+          $ref: '#/components/schemas/ReviewProduct'
+        createdAt:
+          type: string
+          format: date-time
+          example: "2025-10-15T15:00:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2025-10-15T15:00:00.000Z"
+
+    ReviewUser:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "64c9b8d3a7e9a2d8f0c1b235"
+        name:
+          type: string
+          example: "John Doe"
+        avatar:
+          type: string
+          format: uri
+          example: "https://via.placeholder.com/150/cccccc/969696?text=User"
+
+    ReviewProduct:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "64c9b8d3a7e9a2d8f0c1b236"
+        name:
+          type: string
+          example: "Wireless Headphones"
+        image:
+          type: string
+          format: uri
+          example: "https://example.com/headphones.jpg"
+        price:
+          type: number
+          format: float
+          example: 29.99
+
+    WebhookResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [success, fail]
+          example: success
+        received:
+          type: boolean
+          example: true
+        data:
+          type: object
+          nullable: true
+
+    WebhookErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: fail
+        message:
+          type: string
+          example: "Webhook Error: Invalid signature"
+
+    UpdateOrderStatusRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled", "refunded"]
+          example: "shipped"
+        trackingNumber:
+          type: string
+          example: "TRK987654321"
