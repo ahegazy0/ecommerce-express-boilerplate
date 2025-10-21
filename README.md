@@ -9,7 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
-[Live Demo](https://ecoapp.onrender.com/api) | [API Documentation](http://localhost:5000/api/v1/docs)
+[Live API](https://ecommerce-express-boilerplate.onrender.com/api/v1) | [API Documentation](https://ecommerce-express-boilerplate.onrender.com/api/v1/docs)
 
 ---
 
@@ -26,6 +26,29 @@
 - [Admin Features](#-admin-features)
 - [Contributing](#-contributing)
 - [License](#-license)
+
+---
+## ⚠️ Warning
+
+If you're using the deployed API on Render (not local), **email features will NOT work**.
+
+### Why?
+Render's free tier blocks outgoing SMTP connections on ports 25, 465, and 587 for security reasons. This affects:
+* ✉️ Email verification during registration
+* 🔐 Password reset emails
+* 📧 Any email-based features
+
+### Solutions:
+
+**Quick Test Account** (Pre-verified, skip email verification):
+* **Email:** `nijevyto@denipl.net`
+* **Password:** `asd@123AAA`
+
+**Option 1: Run Locally** ✅
+Clone the repo and run it on your machine for full email functionality.
+
+**Option 2: Switch Email Provider** 🔄
+Replace Gmail SMTP with MailerSend, Resend, or SendGrid (HTTP-based APIs that work on Render free tier).
 
 ---
 
