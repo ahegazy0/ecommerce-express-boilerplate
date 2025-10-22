@@ -73,7 +73,7 @@ tags:
 
 paths:
 
-  /register:
+  /auth/register:
     post:
       tags:
         - Authentication
@@ -125,7 +125,7 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
-  /login:
+  /auth/login:
     post:
       tags:
         - Authentication
@@ -186,7 +186,7 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
-  /google-login:
+  /auth/google-login:
     post:
       tags:
         - Authentication
@@ -230,7 +230,7 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
-  /refresh:
+  /auth/refresh:
     post:
       tags:
         - Authentication
@@ -266,7 +266,7 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
-  /logout:
+  /auth/logout:
     post:
       tags:
         - Authentication
@@ -291,7 +291,7 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
-  /verify-email:
+  /auth/verify-email:
     post:
       tags:
         - Authentication
@@ -325,7 +325,7 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
-  /resend-verification:
+  /auth/resend-verification:
     post:
       tags:
         - Authentication
@@ -361,7 +361,7 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
-  /forgot-password:
+  /auth/forgot-password:
     post:
       tags:
         - Authentication
@@ -393,7 +393,7 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
-  /reset-password:
+  /auth/reset-password:
     post:
       tags:
         - Authentication
@@ -435,7 +435,7 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
-  /change-password:
+  /auth/change-password:
     patch:
       tags:
         - Authentication
@@ -483,7 +483,7 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
-  /profile:
+  /auth/profile:
     get:
       tags:
         - Authentication
